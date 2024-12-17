@@ -25,7 +25,7 @@
   - [x] Add a `/ws` WebSocket endpoint for chat.
   - [x] Implement real-time message sending and receiving logic using Python’s asyncio and WebSockets.
   - [x] Store messages in a database keyed by sender_id and receiver_id.
-  - [ ] Add REST endpoints like `GET /chats/{user_id}` to fetch past messages.
+  - [x] Add REST endpoints like `GET /chats/{user_id}` to fetch past messages.
   
 - **Frontend (Next.js)**:
   - [x] Create a chat UI page where a logged-in user can:
