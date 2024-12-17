@@ -13,8 +13,10 @@ export function getBaseUrl() {
     }
   }
   
-export function getWsUrl() {
+  export const getWsUrl = () => {
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const host = window.location.hostname;
-    const port = '8000'; // backend port
-    return `ws://${host}:${port}`;
-}
+    const port = "8000"; // Replace with the backend WebSocket port
+    return `${protocol}://${host}:${port}`;
+  };
+  
