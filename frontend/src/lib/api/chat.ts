@@ -7,14 +7,14 @@ import axios from "axios";
 
 export const fetchActiveUsers = async (): Promise<number[]> => {
 	// const response = await axios.get(`${BASE_URL}/active-users`);
-	const response = await axios.get(`https://rchat-api.onrender.com/active-users`);
+	const response = await axios.get(`${process.env.API}/active-users`);
 
 	return response.data; // List of active user IDs
 };
 
 export const fetchChatHistory = async (senderId: number, recipientId: number) => {
 	// const response = await fetch(`http://localhost:8000/chats?sender_id=${senderId}&recipient_id=${recipientId}`);
-	const response = await fetch(`https://rchat-api.onrender.com/chats?sender_id=${senderId}&recipient_id=${recipientId}`);
+	const response = await fetch(`${process.env.API}/chats?sender_id=${senderId}&recipient_id=${recipientId}`);
 	if (!response.ok) throw new Error("Failed to fetch chat history");
 	return response.json();
   };

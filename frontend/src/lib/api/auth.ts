@@ -3,7 +3,7 @@ import axios from "axios";
 
 // const BASE_URL = "http://localhost:8000/auth";
 // const BASE_URL = `${getBaseUrl()}/auth`;
-const BASE_URL = `https://rchat-api.onrender.com/auth`;
+const BASE_URL = `${process.env.API}/auth`;
 
 export interface SignupPayload {
 	email: string;

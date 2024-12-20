@@ -21,7 +21,9 @@ export default function ChatPage() {
 	// Fetch active users
 	const fetchActiveUsers = async (currentUserId: number) => {
 		try {
-			const response = await fetch("http://localhost:8000/active-users");
+			// const response = await fetch("http://localhost:8000/active-users");
+			const response = await fetch(`${process.env.API}/active-users`);
+
 			const users = await response.json();
 			// Exclude the current user's ID
 			setActiveUsers(
