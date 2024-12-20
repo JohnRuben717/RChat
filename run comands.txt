@@ -4,7 +4,7 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 
 pip3 freeze > requirements.txt
 pip install fastapi[all] python-multipart
-pip install uvicorn sqlalchemy psycopg2-binary passlib python-jose
+pip install fastapi[all] python-multipart uvicorn sqlalchemy psycopg2-binary passlib python-jose
 
 Front End
 npm run dev

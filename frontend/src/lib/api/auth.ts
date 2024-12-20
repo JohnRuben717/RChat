@@ -1,8 +1,10 @@
 import axios from "axios";
-import { getBaseUrl } from '@/lib/utils/host';
+// import { getBaseUrl } from '@/lib/utils/host';
 
 // const BASE_URL = "http://localhost:8000/auth";
-const BASE_URL = `${getBaseUrl()}/auth`;
+// const BASE_URL = `${getBaseUrl()}/auth`;
+const BASE_URL = `https://rchat-api.onrender.com/auth`;
+
 export interface SignupPayload {
 	email: string;
 	phone?: string;
