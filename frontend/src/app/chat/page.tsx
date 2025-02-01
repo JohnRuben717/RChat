@@ -1,177 +1,175 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import createWebSocket from "@/lib/api/ws";
-import { fetchChatHistory } from "@/lib/api/chat"; // Import the fetchChatHistory function
+import { fetchChatHistory } from "@/lib/api/chat";
+import Sidebar from "../components/Sidebar";
 
 interface Message {
-	sender_id: number;
-	recipient_id: number;
-	message: string;
+  sender_id: number;
+  recipient_id: number;
+  message: string;
 }
 
 export default function ChatPage() {
-	const [messages, setMessages] = useState<Message[]>([]);
-	const [messageText, setMessageText] = useState("");
-	const [activeUsers, setActiveUsers] = useState<number[]>([]);
-	const [selectedUser, setSelectedUser] = useState<number | null>(null);
-	const [userId, setUserId] = useState<number | null>(null);
-	const wsRef = useRef<WebSocket | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [messageText, setMessageText] = useState("");
+  const [highlightedUsers, setHighlightedUsers] = useState<number[]>([]);
+  const [selectedUser, setSelectedUser] = useState<number | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
-	// Fetch active users
-	const fetchActiveUsers = async (currentUserId: number) => {
-		try {
-			// const response = await fetch("http://localhost:8000/active-users");
-			const response = await fetch(`${process.env.API}/active-users`);
+  // Create a ref for the messages container
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-			const users = await response.json();
-			// Exclude the current user's ID
-			setActiveUsers(
-				users.filter((user: number) => user !== currentUserId)
-			);
-		} catch (error) {
-			console.error("Error fetching active users:", error);
-		}
-	};
+  // Scroll to the bottom whenever messages change
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop =
+        messagesContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
 
-	// Add this to the ChatPage component
-	useEffect(() => {
-	  const loadPreviousMessages = async () => {
-		if (userId && selectedUser) {
-		  try {
-			const history = await fetchChatHistory(userId, selectedUser);
-			setMessages(history); // Replace current messages with chat history
-		  } catch (error) {
-			console.error("Error fetching chat history:", error);
-		  }
-		}
-	  };
-	
-	  loadPreviousMessages();
-	}, [selectedUser]); // Runs when a new user is selected
-	
-	// Initialize WebSocket and fetch active users
-	useEffect(() => {
-		const storedUserId = localStorage.getItem("user_id");
-		if (storedUserId) {
-			const id = parseInt(storedUserId);
-			setUserId(id);
-			const ws = createWebSocket(id);
-			wsRef.current = ws;
+  // Fetch previous chat history when a conversation is selected
+  useEffect(() => {
+    const loadPreviousMessages = async () => {
+      if (userId && selectedUser) {
+        try {
+          const history = await fetchChatHistory(userId, selectedUser);
+          setMessages(history);
+          // Remove highlight for the selected conversation
+          setHighlightedUsers((prev) => prev.filter((id) => id !== selectedUser));
+        } catch (error) {
+          console.error("Error fetching chat history:", error);
+        }
+      }
+    };
 
-			ws.onmessage = (event) => {
-				const data: Message = JSON.parse(event.data);
-				setMessages((prev) => [...prev, data]);
-			};
+    loadPreviousMessages();
+  }, [selectedUser]);
 
-			ws.onclose = () => {
-				console.log("WebSocket disconnected");
-			};
+  // Initialize WebSocket and handle incoming messages
+  useEffect(() => {
+    const storedUserId = localStorage.getItem("user_id");
+    if (storedUserId) {
+      const id = parseInt(storedUserId);
+      setUserId(id);
+      const ws = createWebSocket(id);
+      wsRef.current = ws;
 
-			return () => ws.close();
-		} else {
-			console.error(
-				"User ID not found in localStorage. Please log in again."
-			);
-		}
-	}, []);
+      ws.onmessage = (event) => {
+        const data: Message = JSON.parse(event.data);
 
-	// Fetch active users whenever userId changes
-	useEffect(() => {
-		if (userId !== null) {
-			fetchActiveUsers(userId);
-			const interval = setInterval(() => fetchActiveUsers(userId), 5000);
-			return () => clearInterval(interval);
-		}
-	}, [userId]); // Run when userId is updated
+        if (
+          selectedUser &&
+          (data.sender_id === selectedUser || data.recipient_id === selectedUser)
+        ) {
+          setMessages((prev) => [...prev, data]);
+        } else {
+          if (data.sender_id !== userId) {
+            setHighlightedUsers((prev) =>
+              Array.from(new Set([...prev, data.sender_id]))
+            );
+          }
+        }
+      };
 
-	// Send message
-	const sendMessage = () => {
-		if (!wsRef.current || !selectedUser || !userId) return;
+      ws.onclose = () => {
+        console.log("WebSocket disconnected");
+      };
 
-		const messageData = {
-			recipient_id: selectedUser,
-			message: messageText,
-		};
+      return () => ws.close();
+    } else {
+      console.error("User ID not found in localStorage. Please log in again.");
+    }
+  }, [selectedUser]);
 
-		wsRef.current.send(JSON.stringify(messageData));
-		setMessages((prev) => [
-			...prev,
-			{
-				sender_id: userId,
-				recipient_id: selectedUser,
-				message: messageText,
-			},
-		]);
-		setMessageText("");
-	};
+  // Send message
+  const sendMessage = () => {
+    if (!wsRef.current || !selectedUser || !userId) return;
 
-	return (
-		<div className="p-4">
-			<h1 className="text-2xl font-bold mb-4">Chat</h1>
+    const messageData = {
+      recipient_id: selectedUser,
+      message: messageText,
+    };
 
-			{userId ? (
-				<>
-					{/* Display Active Users */}
-					<div className="mb-4">
-						<h2 className="text-lg font-semibold">Active Users</h2>
-						<ul>
-							{activeUsers.map((user) => (
-								<li
-									key={user}
-									className={`cursor-pointer p-2 text-black ${
-										selectedUser === user
-											? "bg-blue-300"
-											: "bg-gray-200"
-									}`}
-									onClick={() => setSelectedUser(user)}
-								>
-									User {user}
-								</li>
-							))}
-						</ul>
-					</div>
+    wsRef.current.send(JSON.stringify(messageData));
 
-					{/* Chat Messages */}
-					<div className="border p-4 h-64 overflow-y-scroll">
-						{messages.map((msg, index) => (
-							<p
-								key={index}
-								className={`mb-1 ${
-									msg.sender_id === userId
-										? "text-blue-500 text-right"
-										: "text-gray-700 text-left"
-								}`}
-							>
-								{msg.sender_id === userId
-									? `You: ${msg.message}`
-									: `User ${msg.sender_id}: ${msg.message}`}
-							</p>
-						))}
-					</div>
+    // Remove the highlight for the currently active conversation
+    setHighlightedUsers((prev) => prev.filter((id) => id !== selectedUser));
 
-					{/* Message Input */}
-					<div className="mt-4">
-						<input
-							type="text"
-							placeholder="Type a message"
-							className="border p-2 w-full text-black"
-							value={messageText}
-							onChange={(e) => setMessageText(e.target.value)}
-							disabled={!selectedUser}
-						/>
-						<button
-							onClick={sendMessage}
-							className="bg-blue-500 text-white p-2 rounded mt-2"
-							disabled={!selectedUser}
-						>
-							Send
-						</button>
-					</div>
-				</>
-			) : (
-				<p>Loading...</p>
-			)}
-		</div>
-	);
+    setMessages((prev) => [
+      ...prev,
+      {
+        sender_id: userId,
+        recipient_id: selectedUser,
+        message: messageText,
+      },
+    ]);
+    setMessageText("");
+  };
+
+  return (
+    <div className="flex">
+      {/* Sidebar */}
+      <Sidebar
+        userId={userId!}
+        selectedConversation={selectedUser}
+        onConversationSelect={setSelectedUser}
+        highlightedUsers={highlightedUsers}
+      />
+      <div className="flex-1 p-4">
+        <h1 className="text-2xl font-bold mb-4">Chat</h1>
+        {selectedUser ? (
+          <>
+            {/* Chat Messages */}
+            <div
+              className="border p-4 h-64 overflow-y-scroll scroll-smooth"
+              ref={messagesContainerRef}
+            >
+              {messages.map((msg, index) => (
+                <motion.p
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className={`mb-1 ${
+                    msg.sender_id === userId
+                      ? "text-blue-500 text-right"
+                      : "text-gray-700 text-left"
+                  }`}
+                >
+                  {msg.sender_id === userId
+                    ? `You: ${msg.message}`
+                    : `User ${msg.sender_id}: ${msg.message}`}
+                </motion.p>
+              ))}
+            </div>
+
+            {/* Message Input */}
+            <div className="mt-4">
+              <input
+                type="text"
+                placeholder="Type a message"
+                className="border p-2 w-full text-black"
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                disabled={!selectedUser}
+              />
+              <button
+                onClick={sendMessage}
+                className="bg-blue-500 text-white p-2 rounded mt-2"
+                disabled={!selectedUser}
+              >
+                Send
+              </button>
+            </div>
+          </>
+        ) : (
+          <p>Select a conversation to start chatting</p>
+        )}
+      </div>
+    </div>
+  );
 }

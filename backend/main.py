@@ -1,17 +1,23 @@
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Query
 from sqlalchemy.orm import Session
+from http.client import HTTPException
 from src.routers import auth  # Authentication routes
 from src.db import SessionLocal  # Database session
 from src.services.chat_service import save_message  # Save messages to PostgreSQL
 from typing import Dict, List
-
+from sqlalchemy import or_
+from sqlalchemy.sql import text
 app = FastAPI()
 
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
+]
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
+    allow_origins=origins, # Allow all origins
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
@@ -103,3 +109,25 @@ def get_chats(
         }
         for msg in messages
     ]
+
+@app.get("/conversations")
+def get_conversations(user_id: int, db: Session = Depends(get_db)):
+    """
+    Fetch all users the current user has messaged or been messaged by.
+    """
+    try:
+        results = db.execute(
+            text("""
+            SELECT DISTINCT CASE
+                WHEN sender_id = :user_id THEN recipient_id
+                ELSE sender_id
+            END AS user_id
+            FROM chat_messages
+            WHERE sender_id = :user_id OR recipient_id = :user_id
+            """),
+            {"user_id": user_id}
+        ).fetchall()
+        return [row[0] for row in results]
+    except Exception as e:
+        print(f"Database error: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")

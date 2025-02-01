@@ -29,7 +29,7 @@
   
 - **Frontend (Next.js)**:
   - [x] Create a chat UI page where a logged-in user can:
-    - [ ] Select another user from a contact list (you may just seed some test users at this point).
+    - [x] Select another user from a contact list.
     - [x] Send and receive plain text messages in real-time via WebSocket.
   
 **Features Achieved After  2:**

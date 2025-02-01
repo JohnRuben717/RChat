@@ -18,3 +18,14 @@ class ChatMessage(Base):
     recipient_id = Column(Integer, ForeignKey("user.id"), nullable=False)
     message = Column(String, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
+    
+
+class MessageRequest(Base):
+    __tablename__ = "message_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sender_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    recipient_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    status = Column(String(20), nullable=False)  # CHECK constraint handled in the database
+    created_at = Column(DateTime, default=datetime.utcnow)
+    

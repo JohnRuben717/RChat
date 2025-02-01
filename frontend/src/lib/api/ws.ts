@@ -1,8 +1,8 @@
-// import { getWsUrl } from "../utils/host";
+import { getWsUrl } from "../utils/host";
 
 export default function createWebSocket(userId: number): WebSocket {
-    // const ws = new WebSocket(`${getWsUrl()}/ws`);
-    const ws = new WebSocket(`${process.env.API}/ws`);
+    const ws = new WebSocket(`${getWsUrl()}/ws`);
+    // const ws = new WebSocket(`${process.env.API}/ws`);
 
     
     ws.onopen = () => {
